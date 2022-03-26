@@ -2,34 +2,34 @@
 
 set -e
 
-# echo $CLOUDFLARE_API_TOKEN
-# CLOUDFLARE_API_TOKEN=$(cat /run/secrets/cloudflare_api_key)
+if $CREATE_NEW_CERT; then
+    DOMAIN_STRING=""
 
-cat $CLOUDFLARE_API_TOKEN > /etc/letsencrypt/cloudflare.ini
+    # backup field separator into variable
+    Field_Separator=$IFS
 
-## Global vars
-EVERY_DAYS="$EVERY_DAYS"
-RENEW_IF_VALID="$RENEW_IF_VALID"
-EMAIL="$EMAIL"
-DOMAINS="$DOMAINS"
+    # set new field separator
+    IFS=','
 
-## Calculate seconds to sleep
-SLEEP_SECONDS=$(( $EVERY_DAYS * 86400))
+    # for each domain supplied, append it to the domain string
+    for dn in $DOMAINS; do DOMAIN_STRING="$DOMAIN_STRING -d $dn"; done
 
-## Should certificates should be reissued every run
-if [[ $RENEW_IF_VALID == "no" ]]; then
-    RENEW_ANSWER="1"
-else
-    RENEW_ANSWER="2"
+    # remove leading whitespace
+    DOMAIN_STRING=echo $DOMAIN_STRING | awk '{$1=$1};1'
+
+    # restore field separator to original
+    IFS=$Field_Separator
+
+    # create the new cert
+    certbot certonly --key-type ecdsa --cert-name $CERTNAME --dns-cloudflare --dns-cloudflare-credentials $CLOUDFLARE_API_TOKEN $DOMAIN_STRING --email $EMAIL --agree-tos
 fi
 
-## Loop indefinitely
+## Calculate seconds to sleep
+SLEEP_SECONDS=$(( $DAYS * 86400))
+
+## Loop indefinitely, checking if renewal is required at set interval, $DAYS
 while true; do
-    IFS=','; for DOMAIN in $DOMAINS; do
-        ## Generate SSL certificates for Domains
-        echo $RENEW_ANSWER | certbot certonly --dns-cloudflare --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini -d $DOMAIN --email $EMAIL --agree-tos 
-        # echo $RENEW_ANSWER | certbot certonly --dns-cloudflare --dns-cloudflare-credentials $CLOUDFLARE_API_TOKEN -d $DOMAIN --email $EMAIL --agree-tos 
-    done
+    certbot renew --key-type ecdsa --cert-name $CERTNAME 
     echo "Sleeping for $SLEEP_SECONDS"
     sleep $SLEEP_SECONDS
 done

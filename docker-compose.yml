@@ -8,16 +8,17 @@ services:
     container_name: certbot
     volumes:
       - certificates:/etc/letsencrypt
-      - ${DOCKER_HOME}/certbot/scripts/:/scripts/
+      - ${DOCKER_HOME}/certbot-docker-autorenew/scripts/:/scripts/
+      - ${DOCKER_HOME}/certbot-docker-autorenew/logs:/var/log/letsencrypt
       # - ${DOCKER_HOME}/certbot/letsencrypt/lib:/var/lib/letsencrypt
     environment: 
-      - EVERY_DAYS=1
+      - DAYS=1
       - EMAIL=${CF_EMAIL}
       - DOMAINS=${CF_DOMAINS}
-      - RENEW_IF_VALID=no
-      - CLOUDFLARE_API_TOKEN=/run/secrets/cloudflare_api_key
+      - RENEW_IF_VALID=true
+      - CLOUDFLARE_API_TOKEN=/run/secrets/dns_cloudflare_api_token.ini
     secrets:
-      - cloudflare_api_key
+      - dns_cloudflare_api_token.ini
 
 volumes:
   certificates:
@@ -25,5 +26,5 @@ volumes:
     external: true
 
 secrets:
-  cloudflare_api_key:
-    file: ${DOCKER_HOME}/certbot-docker-autorenew/secrets/cloudflare_api_key
+  dns_cloudflare_api_token.ini:
+    file: ${DOCKER_HOME}/certbot-docker-autorenew/.secrets/dns_cloudflare_api_token.ini
