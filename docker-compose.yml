@@ -10,20 +10,26 @@ services:
       - certificates:/etc/letsencrypt
       - ${DOCKER_HOME}/certbot-docker-autorenew/scripts/:/scripts/
       - ${DOCKER_HOME}/certbot-docker-autorenew/logs:/var/log/letsencrypt
-      # - ${DOCKER_HOME}/certbot/letsencrypt/lib:/var/lib/letsencrypt
     environment: 
       - DAYS=1
       - EMAIL=${CF_EMAIL}
+      - CERTNAME=${CERTNAME}
       - DOMAINS=${CF_DOMAINS}
-      - RENEW_IF_VALID=true
+      - CREATE_NEW_CERT=false
       - CLOUDFLARE_API_TOKEN=/run/secrets/dns_cloudflare_api_token.ini
     secrets:
       - dns_cloudflare_api_token.ini
+    networks:
+      - my_network
 
 volumes:
   certificates:
     name: certificates
     external: true
+
+networks:
+  my_network:
+    name: my_network
 
 secrets:
   dns_cloudflare_api_token.ini:
